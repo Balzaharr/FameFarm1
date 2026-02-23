@@ -17,7 +17,7 @@ import Constants.ApiPoints as ApiPoints
 import Constants.ClassIds as Classes
 from PluginManager import callHooks, hook, client
 
-from threading import Timer
+from threading import Lock, Timer
 
 class RepeatTimer(Timer):
     def run(self):
@@ -65,6 +65,7 @@ class Client:
         self.bulletId = 0
         self.lastAttackTime = 0
         self.records = []
+        self.recordsLock = Lock()
         self.connectCooldown = 0
         self.lastPacketTime = 0
 
@@ -255,8 +256,9 @@ class Client:
         if len(self.nextPos) > 0:
             diff = min(100, time-self.lastFrameTime)
             self.moveTo(self.nextPos[0], diff)
-        self.records.append(MoveRecord.MoveRecord(time, self.pos.x, self.pos.y))
-        self.lastFrameTime = time
+        with self.recordsLock:
+            self.records.append(MoveRecord.MoveRecord(time, self.pos.x, self.pos.y))
+            self.lastFrameTime = time
 
     def moveTo(self, target, time):
         speed = self.getSpeed(time)
@@ -401,10 +403,11 @@ class Client:
         move_packet = PacketHelper.createPacket("MOVE")
         move_packet.tickId = packet.tickId
         move_packet.time = packet.serverRealTimeMS
-        move_packet.records = self.records
-        if len(move_packet.records) == 0:#Causes dc otherwise
-            move_packet.records = [MoveRecord.MoveRecord(self.lastFrameTime, self.pos.x, self.pos.y)]
-        self.records = []
+        with self.recordsLock:
+            move_packet.records = self.records.copy()
+            if len(move_packet.records) == 0:#Causes dc otherwise
+                move_packet.records = [MoveRecord.MoveRecord(self.lastFrameTime, self.pos.x, self.pos.y)]
+            self.records = []
         self.send(move_packet)
         for status in packet.statuses:
             if status.objectId == self.objectId:
@@ -430,9 +433,13 @@ class Client:
 
     @hook("enemyShoot")
     def onEnemyShoot(self, packet):
-        shootAck = PacketHelper.createPacket("SHOOTACK")
-        shootAck.time = self.lastFrameTime
-        self.send(shootAck)
+        enemyShootAck = PacketHelper.createPacket("ENEMYSHOOTACK")
+        enemyShootAck.time = self.lastFrameTime
+        # We ack one ENEMYSHOOT packet at a time. The server expects this
+        # packet type (not SHOOTACK), with numEnemies matching the number
+        # of unacked enemy shoot packets.
+        enemyShootAck.numEnemies = 1
+        self.send(enemyShootAck)
 
     @hook("reconnect")
     def onReconnect(self, packet):
