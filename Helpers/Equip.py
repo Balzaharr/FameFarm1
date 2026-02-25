@@ -16,7 +16,7 @@ class Weapon:
         self.arcGap = float(arcGap.text) if arcGap is not None else 11.25
 
         self.projectile = Projectile(obj.find("Projectile"))
-        
+
 
 class Projectile:
     def __init__(self, proj):
@@ -43,6 +43,7 @@ class Projectile:
 from xml.etree import ElementTree
 
 WEAPONIDS = [17, 8, 1, 24, 3, 2]
+
 
 def parseWeapons(path):
     idToWeapon = {}
