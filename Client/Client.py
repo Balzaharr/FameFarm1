@@ -316,9 +316,6 @@ class Client:
         for i in range(weapon.numProjectiles):
             shootPacket.bulletId = self.getBulletId()
             shootPacket.projectileId = i
-            shootPacket.isBurst = weapon.isBurst
-            shootPacket.patternIdx = weapon.patternByProjectileId.get(i, -1)
-            shootPacket.attackType = 0
             shootPacket.shotPos = self.pos.clone()
             shootPacket.shotPos.x += math.cos(angle) * 0.3
             shootPacket.shotPos.y += math.sin(angle) * 0.3

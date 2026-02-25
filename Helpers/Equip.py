@@ -15,22 +15,6 @@ class Weapon:
         arcGap = obj.find("ArcGap")
         self.arcGap = float(arcGap.text) if arcGap is not None else 11.25
 
-        burstCount = obj.find("BurstCount")
-        burstCountValue = int(burstCount.text) if burstCount is not None else 1
-        self.isBurst = burstCountValue > 1
-
-        # Maps projectileId -> patternIdx for weapons that define alternate patterns.
-        # Defaults to {} when no explicit projectile pattern metadata exists.
-        self.patternByProjectileId = {}
-        for idx, pattern in enumerate(obj.findall("ProjectilePattern")):
-            projectileId = pattern.attrib.get("projectileId")
-            if projectileId is None:
-                continue
-            try:
-                self.patternByProjectileId[int(projectileId)] = idx
-            except ValueError:
-                continue
-
         self.projectile = Projectile(obj.find("Projectile"))
 
 
@@ -73,8 +57,8 @@ def parseWeapons(path):
             continue
 
         try:
-            weapon = Weapon(obj)
-            idToWeapon[weapon.itemId] = weapon
+                weapon = Weapon(obj)
+                idToWeapon[weapon.itemId] = weapon
         except Exception as e:
             print(f"[Equip] Skipping '{obj.attrib.get('id', '?')}': {e}")
 
