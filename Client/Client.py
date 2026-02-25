@@ -304,8 +304,7 @@ class Client:
         shootPacket = PacketHelper.createPacket("PLAYERSHOOT")
         shootPacket.time = time
         shootPacket.containerType = self.playerData.inv[0]
-        shootPacket.speedMult = self.playerData.projSpeedMult
-        shootPacket.lifeMult = self.playerData.projLifeMult
+        shootPacket.pos = self.pos.clone()
 
         weapon = self.clientManager.weapons[shootPacket.containerType]
         arcRads = weapon.arcGap * math.pi / 180
@@ -316,9 +315,13 @@ class Client:
 
         for i in range(weapon.numProjectiles):
             shootPacket.bulletId = self.getBulletId()
-            shootPacket.pos = self.pos.clone()
-            shootPacket.pos.x += math.cos(angle) * 0.3
-            shootPacket.pos.y += math.sin(angle) * 0.3
+            shootPacket.projectileId = i
+            shootPacket.isBurst = weapon.isBurst
+            shootPacket.patternIdx = weapon.patternByProjectileId.get(i, -1)
+            shootPacket.attackType = 0
+            shootPacket.shotPos = self.pos.clone()
+            shootPacket.shotPos.x += math.cos(angle) * 0.3
+            shootPacket.shotPos.y += math.sin(angle) * 0.3
             shootPacket.angle = angle
             if arcRads > 0:
                 angle += arcRads
@@ -440,6 +443,13 @@ class Client:
         # of unacked enemy shoot packets.
         enemyShootAck.numEnemies = 1
         self.send(enemyShootAck)
+
+    @hook("aoe")
+    def onAoe(self, packet):
+        aoeAck = PacketHelper.createPacket("AOEACK")
+        aoeAck.time = self.lastFrameTime
+        aoeAck.pos = self.pos.clone() if not self.pos is None else packet.pos.clone()
+        self.send(aoeAck)
 
     @hook("reconnect")
     def onReconnect(self, packet):

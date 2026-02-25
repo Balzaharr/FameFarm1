@@ -1,12 +1,24 @@
 import random
 from hashlib import md5
 from Client.Client import Client
+from Helpers.Equip import parseWeapons
+
+
+EQUIP_PATH = "Resources/equip.xml"
 
 class ClientManager:
     def __init__(self):
         self.clients = []
         self.updateServers = False
         self.baseAccInfo = {"guid": "", "password": "", "secret": ""}
+        self.weapons = None
+
+        try:
+            self.weapons = parseWeapons(EQUIP_PATH)
+        except FileNotFoundError:
+            print("WARNING: Missing Resources/equip.xml, shooting helpers are disabled")
+        except Exception as e:
+            print(f"WARNING: Failed to parse {EQUIP_PATH}: {e}")
 
     def addClient(self, accInfo):
         accInfo = self.baseAccInfo | accInfo

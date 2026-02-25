@@ -5,39 +5,61 @@ class Weapon:
     def parse(self, obj):
         self.name = obj.attrib["id"]
         self.itemId = int(obj.attrib["type"], 16)
-        self.rof = float(obj.find("RateOfFire").text)
+
+        rof = obj.find("RateOfFire")
+        self.rof = float(rof.text) if rof is not None else 1.0
+
         numProj = obj.find("NumProjectiles")
-        if not numProj is None:
-            self.numProjectiles = int(numProj.text)
-        else:
-            self.numProjectiles = 1
+        self.numProjectiles = int(numProj.text) if numProj is not None else 1
+
         arcGap = obj.find("ArcGap")
-        if not arcGap is None:
-            self.arcGap = int(arcGap.text)
-        else:
-            self.arcGap = 11.25  
+        self.arcGap = float(arcGap.text) if arcGap is not None else 11.25
+
+        burstCount = obj.find("BurstCount")
+        burstCountValue = int(burstCount.text) if burstCount is not None else 1
+        self.isBurst = burstCountValue > 1
+
+        # Maps projectileId -> patternIdx for weapons that define alternate patterns.
+        # Defaults to {} when no explicit projectile pattern metadata exists.
+        self.patternByProjectileId = {}
+        for idx, pattern in enumerate(obj.findall("ProjectilePattern")):
+            projectileId = pattern.attrib.get("projectileId")
+            if projectileId is None:
+                continue
+            try:
+                self.patternByProjectileId[int(projectileId)] = idx
+            except ValueError:
+                continue
+
         self.projectile = Projectile(obj.find("Projectile"))
-        
+
 
 class Projectile:
     def __init__(self, proj):
         self.parse(proj)
 
     def parse(self, proj):
-        self.speed = float(proj.find("Speed").text)
-        self.lifetime = float(proj.find("LifetimeMS").text)
+        speed = proj.find("Speed")
+        self.speed = float(speed.text) if speed is not None else 100.0
+
+        lifetime = proj.find("LifetimeMS")
+        self.lifetime = float(lifetime.text) if lifetime is not None else 1000.0
+
         dmg = proj.find("Damage")
-        if not dmg is None:
-            self.minDmg = int(proj.find("Damage").text)
+        if dmg is not None:
+            self.minDmg = int(dmg.text)
             self.maxDmg = self.minDmg
         else:
-            self.minDmg = int(proj.find("MinDamage").text)
-            self.maxDmg = int(proj.find("MaxDamage").text)
+            minDmg = proj.find("MinDamage")
+            maxDmg = proj.find("MaxDamage")
+            self.minDmg = int(minDmg.text) if minDmg is not None else 0
+            self.maxDmg = int(maxDmg.text) if maxDmg is not None else 0
 
 
 from xml.etree import ElementTree
 
 WEAPONIDS = [17, 8, 1, 24, 3, 2]
+
 
 def parseWeapons(path):
     idToWeapon = {}
@@ -45,9 +67,15 @@ def parseWeapons(path):
     root = tree.getroot()
     for obj in root:
         slotType = obj.find("SlotType")
-        if not slotType is None:
-            slotType = int(slotType.text)
-            if slotType in WEAPONIDS:
-                weapon = Weapon(obj)
-                idToWeapon[weapon.itemId] = weapon
+        if slotType is None:
+            continue
+        if int(slotType.text) not in WEAPONIDS:
+            continue
+
+        try:
+            weapon = Weapon(obj)
+            idToWeapon[weapon.itemId] = weapon
+        except Exception as e:
+            print(f"[Equip] Skipping '{obj.attrib.get('id', '?')}': {e}")
+
     return idToWeapon
