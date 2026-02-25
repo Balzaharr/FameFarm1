@@ -24,6 +24,21 @@ Look in `Accounts_ex.json` to see how different accounts and proxies are used.
 
 The folder `Plugins` is where you make the plugins the clients will use.
 
+Example: `Plugins/AutoShootPlugin.py` adds a basic nearest-target autoshoot mode.
+Toggle it with private messages to your character:
+
+- `autoshoot on`
+- `autoshoot off`
+- `autoshoot`
+
+To enable weapon-aware shooting, place an `equip.xml` file at `Resources/equip.xml`.
+
+`Plugins/EnterRealmPlugin.py` can also auto-enter the least-crowded realm portal from nexus once HP is full.
+
+`Plugins/AutoNexusPlugin.py` can auto-escape to nexus when HP falls below a threshold, then move to a heal spot and resume once full HP.
+
+`Plugins/WalkToCenterPlugin.py` can pathfind to realm center (1024,1024) using `Resources/nowalk.txt`, `Resources/sink.txt`, and `Resources/blocked.txt`.
+
 ### Running
 
 To start the bot simply run pyrelay.py from the cmd
